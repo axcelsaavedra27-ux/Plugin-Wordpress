@@ -1,0 +1,24 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "ccr/calculadora",
+	"version": "1.0.0",
+	"title": "Calculadora de cielorraso PVC",
+	"category": "widgets",
+	"icon": "calculator",
+	"description": "Inserta la calculadora de materiales para cielorraso PVC.",
+	"keywords": [ "cielorraso", "pvc", "calculadora", "materiales" ],
+	"textdomain": "calculadora-cielorraso-pvc",
+	"supports": {
+		"html": false,
+		"align": [ "wide", "full" ],
+		"spacing": { "margin": true, "padding": true }
+	},
+	"attributes": {
+		"title": { "type": "string", "default": "" },
+		"subtitle": { "type": "string", "default": "" },
+		"hideHeader": { "type": "boolean", "default": false }
+	},
+	"editorScript": "file:./index.js",
+	"editorStyle": "ccr-block-editor"
+}
