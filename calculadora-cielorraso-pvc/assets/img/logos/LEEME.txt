@@ -1,0 +1,9 @@
+Logos de Konex para el encabezado del PDF
+=========================================
+
+Copiá en esta carpeta los logos de Konex (PNG, JPG, WebP o GIF).
+Se imprimen arriba de cada página del PDF, de izquierda a derecha,
+en orden alfabético por nombre de archivo (ej.: 1-konex.png, 2-konex-mayorista.png).
+
+Si la carpeta no tiene imágenes, el PDF muestra el logotipo "KONEX.uy" en texto.
+Esta carpeta no se puede cambiar desde el panel de WordPress.

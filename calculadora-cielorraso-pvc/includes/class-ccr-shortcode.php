@@ -77,6 +77,9 @@ class CCR_Shortcode {
 					'thousands' => $s['thousands_sep'],
 				),
 				'primary'  => $s['primary_color'],
+				'brand'    => array(
+					'logos' => self::brand_logos(),
+				),
 				'i18n'     => array(
 					'area'         => __( 'Área total', 'calculadora-cielorraso-pvc' ),
 					'perimeter'    => __( 'Perímetro', 'calculadora-cielorraso-pvc' ),
@@ -167,5 +170,32 @@ class CCR_Shortcode {
 		ob_start();
 		include $template;
 		return ob_get_clean();
+	}
+
+	/**
+	 * Logos de Konex que se imprimen arriba del PDF.
+	 *
+	 * Se leen de la carpeta fija assets/img/logos/ del plugin (orden alfabético) y no
+	 * dependen de ningún ajuste del panel, para que no puedan quitarse desde WordPress.
+	 *
+	 * @return string[] URLs de las imágenes.
+	 */
+	private static function brand_logos() {
+		$files = glob( CCR_PATH . 'assets/img/logos/*' );
+		if ( ! $files ) {
+			return array();
+		}
+		$files = array_filter(
+			$files,
+			function ( $file ) {
+				return is_file( $file ) && in_array( strtolower( pathinfo( $file, PATHINFO_EXTENSION ) ), array( 'png', 'jpg', 'jpeg', 'webp', 'gif' ), true );
+			}
+		);
+		sort( $files );
+		$urls = array();
+		foreach ( $files as $file ) {
+			$urls[] = CCR_URL . 'assets/img/logos/' . rawurlencode( basename( $file ) ) . '?v=' . filemtime( $file );
+		}
+		return $urls;
 	}
 }

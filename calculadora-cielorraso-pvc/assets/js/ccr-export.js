@@ -121,21 +121,49 @@
 	PdfDoc.prototype.line = function (x1, y1, x2, y2, rgb, width) {
 		this.cur.push(this.color(rgb || [0.85, 0.85, 0.85], true) + ' ' + (width || 0.6) + ' w ' + x1.toFixed(2) + ' ' + (this.H - y1).toFixed(2) + ' m ' + x2.toFixed(2) + ' ' + (this.H - y2).toFixed(2) + ' l S');
 	};
+	/** Registra una imagen JPEG ({data: string binario, w, h}) y devuelve su nombre de recurso. */
+	PdfDoc.prototype.addImage = function (img) {
+		this.images = this.images || [];
+		this.images.push(img);
+		return 'Im' + this.images.length;
+	};
+	PdfDoc.prototype.image = function (name, x, y, w, h) {
+		this.cur.push('q ' + w.toFixed(2) + ' 0 0 ' + h.toFixed(2) + ' ' + x.toFixed(2) + ' ' + (this.H - y - h).toFixed(2) + ' cm /' + name + ' Do Q');
+	};
+	/** Texto rotado y semitransparente (marca de agua). angle en grados. */
+	PdfDoc.prototype.rotatedText = function (x, y, str, size, angle, rgb) {
+		var a = angle * Math.PI / 180;
+		var c = Math.cos(a).toFixed(4);
+		var s = Math.sin(a).toFixed(4);
+		var w = textWidth(str, size, true);
+		// Centra el texto sobre (x, y) a lo largo de su eje.
+		var ox = x - Math.cos(a) * w / 2;
+		var oy = (this.H - y) - Math.sin(a) * w / 2;
+		var esc = toWinAnsi(str).replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+		this.cur.push('q /GSwm gs BT ' + this.color(rgb) + ' /F2 ' + size + ' Tf ' + c + ' ' + s + ' ' + (-s) + ' ' + c + ' ' + ox.toFixed(2) + ' ' + oy.toFixed(2) + ' Tm (' + esc + ') Tj ET Q');
+	};
 	PdfDoc.prototype.output = function () {
 		var objs = [];
 		var n = this.pages.length;
-		// 1 catálogo, 2 páginas, 3 F1, 4 F2, luego (página, contenido) por cada página.
+		var images = this.images || [];
+		var imgBase = 5 + n * 2;
+		// 1 catálogo, 2 páginas, 3 F1, 4 F2, luego (página, contenido) por cada página y al final las imágenes.
 		objs[1] = '<< /Type /Catalog /Pages 2 0 R >>';
 		var kids = [];
 		for (var i = 0; i < n; i++) { kids.push((5 + i * 2) + ' 0 R'); }
 		objs[2] = '<< /Type /Pages /Kids [' + kids.join(' ') + '] /Count ' + n + ' >>';
 		objs[3] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';
 		objs[4] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>';
+		var xobj = images.map(function (img, k) { return '/Im' + (k + 1) + ' ' + (imgBase + k) + ' 0 R'; }).join(' ');
+		var resources = '<< /Font << /F1 3 0 R /F2 4 0 R >> /ExtGState << /GSwm << /Type /ExtGState /ca ' + WATERMARK.opacity + ' /CA ' + WATERMARK.opacity + ' >> >>' + (xobj ? ' /XObject << ' + xobj + ' >>' : '') + ' >>';
 		for (var p = 0; p < n; p++) {
 			var content = this.pages[p].join('\n');
-			objs[5 + p * 2] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + this.W + ' ' + this.H + '] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ' + (6 + p * 2) + ' 0 R >>';
+			objs[5 + p * 2] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + this.W + ' ' + this.H + '] /Resources ' + resources + ' /Contents ' + (6 + p * 2) + ' 0 R >>';
 			objs[6 + p * 2] = '<< /Length ' + content.length + ' >>\nstream\n' + content + '\nendstream';
 		}
+		images.forEach(function (img, k) {
+			objs[imgBase + k] = '<< /Type /XObject /Subtype /Image /Width ' + img.w + ' /Height ' + img.h + ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ' + img.data.length + ' >>\nstream\n' + img.data + '\nendstream';
+		});
 		var out = '%PDF-1.4\n%\xE2\xE3\xCF\xD3\n';
 		var offsets = [];
 		for (var k = 1; k < objs.length; k++) {
@@ -151,7 +179,100 @@
 		return bytes;
 	};
 
+	/* ======================== Marca Konex (fija) ======================== */
+
+	/*
+	 * Marca de agua y logos de Konex Mayorista. Van fijos en el código a propósito:
+	 * no hay ninguna opción en el panel ni en los ajustes que permita quitarlos.
+	 * La marca se dibuja dentro del mismo flujo de contenido de cada página y por
+	 * encima de todo lo demás, por lo que no es una capa ni una anotación separada.
+	 */
+	var WATERMARK = {
+		text: 'KONEX MAYORISTA',
+		size: 34,
+		angle: 35,
+		opacity: 0.12,
+		color: [0.16, 0.16, 0.53],
+		notice: 'Documento generado con la herramienta de Konex Mayorista · konex.uy'
+	};
+
+	var logoCache = null;
+
+	/** Convierte una imagen (PNG/JPG/WebP/GIF) a JPEG sobre fondo blanco para incrustarla en el PDF. */
+	function loadLogo(url) {
+		return new Promise(function (resolve) {
+			var img = new Image();
+			img.crossOrigin = 'anonymous';
+			img.onload = function () {
+				try {
+					var scale = Math.min(1, 600 / img.naturalWidth, 240 / img.naturalHeight);
+					var w = Math.max(1, Math.round(img.naturalWidth * scale));
+					var h = Math.max(1, Math.round(img.naturalHeight * scale));
+					var canvas = document.createElement('canvas');
+					canvas.width = w;
+					canvas.height = h;
+					var ctx = canvas.getContext('2d');
+					ctx.fillStyle = '#ffffff';
+					ctx.fillRect(0, 0, w, h);
+					ctx.drawImage(img, 0, 0, w, h);
+					var b64 = canvas.toDataURL('image/jpeg', 0.92).split(',')[1];
+					resolve({ data: atob(b64), w: w, h: h });
+				} catch (e) {
+					resolve(null);
+				}
+			};
+			img.onerror = function () { resolve(null); };
+			img.src = url;
+		});
+	}
+
+	function loadLogos() {
+		if (!logoCache) {
+			var brand = (window.CCR_PUBLIC && window.CCR_PUBLIC.brand) || {};
+			var urls = Array.isArray(brand.logos) ? brand.logos : [];
+			logoCache = Promise.all(urls.map(loadLogo)).then(function (list) { return list.filter(Boolean); });
+		}
+		return logoCache;
+	}
+
+	/** Franja blanca superior con los logos de Konex (o el logotipo en texto si no hay imágenes). */
+	function brandHeader(doc, logoNames, M, height) {
+		var maxH = height - 20;
+		var x = M;
+		var right = doc.W - M;
+		if (logoNames.length) {
+			logoNames.forEach(function (l) {
+				var h = maxH;
+				var w = l.w * h / l.h;
+				if (w > 200) { w = 200; h = l.h * w / l.w; }
+				if (x + w > right) { return; }
+				doc.image(l.name, x, (height - h) / 2, w, h);
+				x += w + 18;
+			});
+		} else {
+			doc.text(M, height / 2 + 8, 'KONEX', 24, { bold: true, color: WATERMARK.color });
+			doc.text(M + textWidth('KONEX', 24, true) - 2, height / 2 + 8, '.uy', 16, { bold: true, color: [0.45, 0.47, 0.55] });
+			doc.text(right, height / 2 + 5, 'Konex Mayorista', 10, { bold: true, align: 'right', color: WATERMARK.color });
+		}
+	}
+
+	/** Marca de agua en mosaico diagonal sobre todo el contenido de la página actual. */
+	function watermark(doc) {
+		var stepX = 230;
+		var stepY = 150;
+		var row = 0;
+		for (var y = 60; y < doc.H + stepY; y += stepY, row++) {
+			for (var x = (row % 2) ? 0 : stepX / 2; x < doc.W + stepX; x += stepX) {
+				doc.rotatedText(x, y, WATERMARK.text, WATERMARK.size, WATERMARK.angle, WATERMARK.color);
+			}
+		}
+	}
+
 	function pdf(r, meta) {
+		return loadLogos().then(function (logos) { buildPdf(r, meta, logos); });
+	}
+
+	function buildPdf(r, meta, logos) {
 		var T = meta.i18n || {};
 		var C = meta.company || {};
 		var primary = hexToRgb((window.CCR_PUBLIC && window.CCR_PUBLIC.primary) || '#0b6bcb');
@@ -160,12 +281,15 @@
 		var M = 40;
 		var right = doc.W - M;
 		var y;
+		var BRAND_H = 64;
+		var logoNames = (logos || []).map(function (l) { return { name: doc.addImage(l), w: l.w, h: l.h }; });
 
 		function header() {
-			doc.rect(0, 0, doc.W, 70, primary);
-			doc.text(M, 30, C.name || '', 16, { bold: true, color: [1, 1, 1] });
-			doc.text(M, 50, [C.phone, C.email, C.address].filter(Boolean).join('  ·  '), 9, { color: [1, 1, 1] });
-			y = 100;
+			brandHeader(doc, logoNames, M, BRAND_H);
+			doc.rect(0, BRAND_H, doc.W, 70, primary);
+			doc.text(M, BRAND_H + 30, C.name || '', 16, { bold: true, color: [1, 1, 1] });
+			doc.text(M, BRAND_H + 50, [C.phone, C.email, C.address].filter(Boolean).join('  ·  '), 9, { color: [1, 1, 1] });
+			y = BRAND_H + 100;
 		}
 		function ensure(h, redrawTableHead) {
 			if (y + h > doc.H - 60) {
@@ -261,6 +385,8 @@
 			doc.line(M, doc.H - 40, right, doc.H - 40);
 			doc.text(M, doc.H - 26, C.footer || '', 8, { color: grey });
 			doc.text(right, doc.H - 26, (i + 1) + ' / ' + total, 8, { align: 'right', color: grey });
+			doc.text(doc.W / 2, doc.H - 12, WATERMARK.notice, 7.5, { align: 'center', color: grey });
+			watermark(doc);
 		});
 
 		download(doc.output(), 'presupuesto-cielorraso-' + stamp() + '.pdf', 'application/pdf');
@@ -437,6 +563,9 @@
 		window.print();
 		setTimeout(cleanup, 1000);
 	}
+
+	// Precarga los logos para que el PDF se genere al instante.
+	window.addEventListener('load', function () { if (window.CCR_PUBLIC) { loadLogos(); } });
 
 	window.CCRExport = { pdf: pdf, xlsx: xlsx, print: print, buildXlsx: buildXlsx, download: download };
 })();

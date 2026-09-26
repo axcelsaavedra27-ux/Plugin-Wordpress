@@ -4,7 +4,7 @@ Tags: calculadora, cielorraso, pvc, presupuesto, materiales
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.0.0
+Stable tag: 1.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -28,6 +28,10 @@ Calculadora de materiales para cielorrasos de PVC, 100 % configurable desde el p
 3. Insertar [calculadora_cielorraso] o el bloque "Calculadora de cielorraso PVC".
 
 == Changelog ==
+
+= 1.2.0 =
+* PDF: logos de Konex arriba de cada página (imágenes de assets/img/logos/).
+* PDF: marca de agua fija "KONEX MAYORISTA" en todas las páginas, sin opción para quitarla desde el panel.
 
 = 1.0.0 =
 * Versión inicial.
