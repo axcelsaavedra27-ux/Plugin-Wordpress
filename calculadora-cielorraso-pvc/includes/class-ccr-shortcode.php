@@ -62,6 +62,16 @@ class CCR_Shortcode {
 					'print' => (bool) $s['enable_print'],
 					'excel' => (bool) $s['enable_excel'],
 				),
+				'cart'     => array(
+					'enabled' => CCR_Ajax::cart_available(),
+					'label'   => $s['cart_button_text'],
+				),
+				'whatsapp' => array(
+					'enabled' => $s['whatsapp_enabled'] && '' !== $s['whatsapp_number'],
+					'number'  => $s['whatsapp_number'],
+					'label'   => $s['whatsapp_button_text'],
+					'intro'   => $s['whatsapp_intro'],
+				),
 				'company'  => array(
 					'name'    => $s['company_name'],
 					'phone'   => $s['company_phone'],
@@ -122,6 +132,8 @@ class CCR_Shortcode {
 					'roomOf'       => __( 'Ambiente de', 'calculadora-cielorraso-pvc' ),
 					'boardsAlong'  => __( 'láminas en el sentido de', 'calculadora-cielorraso-pvc' ),
 					'cheapest'     => __( 'opción más económica', 'calculadora-cielorraso-pvc' ),
+					'addingCart'   => __( 'Agregando al carrito…', 'calculadora-cielorraso-pvc' ),
+					'viewCart'     => __( 'Ver carrito', 'calculadora-cielorraso-pvc' ),
 				),
 			)
 		);

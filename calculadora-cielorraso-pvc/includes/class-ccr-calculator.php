@@ -93,6 +93,7 @@ class CCR_Calculator {
 				'length' => isset( $v['length'] ) ? (float) $v['length'] : 0,
 				'width'  => isset( $v['width'] ) ? (float) $v['width'] : 0,
 				'price'  => isset( $v['price'] ) ? (float) $v['price'] : 0,
+				'sku'    => isset( $v['sku'] ) ? (string) $v['sku'] : '',
 			);
 		}
 		return $out;
@@ -290,6 +291,7 @@ class CCR_Calculator {
 			$wid = (float) $m['width'];
 			$prc = (float) $m['price'];
 			$lbl = '';
+			$sku = (string) $m['sku'];
 			if ( $m['_variants'] ) {
 				$idx = isset( $combo['variants'][ $mid ] ) ? $combo['variants'][ $mid ] : 0;
 				$v   = $m['_variants'][ $idx ];
@@ -297,12 +299,14 @@ class CCR_Calculator {
 				$wid = $v['width'] > 0 ? $v['width'] : $wid;
 				$prc = $v['price'];
 				$lbl = $v['label'] ? $v['label'] : self::number( $len ) . ' m';
+				$sku = '' !== $v['sku'] ? $v['sku'] : $sku;
 			}
 			$resolved[ $mid ] = array(
 				'length'        => $len,
 				'width'         => $wid,
 				'price'         => $prc,
 				'variant_label' => $lbl,
+				'cart_sku'      => $sku,
 			);
 			$code                      = self::var_name( $m['code'] );
 			$vars[ $code . '_largo' ]  = $len;
@@ -416,6 +420,7 @@ class CCR_Calculator {
 				'sku'           => $m['sku'],
 				'name'          => $m['name'],
 				'variant_label' => $r['variant_label'],
+				'cart_sku'      => $r['cart_sku'],
 				'description'   => (string) $m['description'],
 				'category'      => isset( $this->categories[ (int) $m['category_id'] ] ) ? $this->categories[ (int) $m['category_id'] ]['name'] : '',
 				'unit'          => $m['unit'],
@@ -591,10 +596,17 @@ class CCR_Calculator {
 		);
 
 		$lines = array();
+		$cart  = array();
 		foreach ( $run['lines'] as $l ) {
 			if ( $l['qty'] <= 0 ) {
 				continue;
 			}
+			$cart[] = array(
+				'name'      => $l['name'] . ( $l['variant_label'] ? ' ' . $l['variant_label'] : '' ),
+				'sku'       => $l['cart_sku'],
+				'qty'       => $l['qty'],
+				'price_qty' => $l['price_qty'],
+			);
 			$line = array(
 				'code'          => $l['code'],
 				'sku'           => $l['sku'],
@@ -665,6 +677,7 @@ class CCR_Calculator {
 		}
 
 		$result['_input'] = $input; // Uso interno (se elimina antes de responder).
+		$result['_cart']  = $cart;  // Uso interno: materiales para el carrito de WooCommerce.
 		return $result;
 	}
 

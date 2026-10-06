@@ -73,6 +73,15 @@ class CCR_Settings {
 			'enable_print'           => array( 'bool', 1 ),
 			'enable_excel'           => array( 'bool', 1 ),
 
+			// Carrito de WooCommerce y WhatsApp.
+			'cart_enabled'           => array( 'bool', 0 ),
+			'cart_button_text'       => array( 'text', 'Agregar materiales al carrito' ),
+			'cart_redirect'          => array( 'select', 'cart', array( 'cart', 'checkout', 'stay' ) ),
+			'whatsapp_enabled'       => array( 'bool', 0 ),
+			'whatsapp_number'        => array( 'text', '' ),
+			'whatsapp_button_text'   => array( 'text', 'Enviar presupuesto por WhatsApp' ),
+			'whatsapp_intro'         => array( 'textarea', 'Hola, quiero consultar por este presupuesto de cielorraso PVC:' ),
+
 			// Empresa (encabezado PDF / impresión).
 			'company_name'           => array( 'text', '' ),
 			'company_phone'          => array( 'text', '' ),
@@ -162,6 +171,7 @@ class CCR_Settings {
 		$out['price_decimals']    = max( 0, min( 4, $out['price_decimals'] ) );
 		$out['border_radius']     = max( 0, min( 40, $out['border_radius'] ) );
 		$out['max_combinations']  = max( 1, min( 5000, $out['max_combinations'] ) );
+		$out['whatsapp_number']   = preg_replace( '/\D/', '', (string) $out['whatsapp_number'] );
 		$out['min_dim']           = max( 0.01, $out['min_dim'] );
 		$out['max_dim']           = max( $out['min_dim'], $out['max_dim'] );
 

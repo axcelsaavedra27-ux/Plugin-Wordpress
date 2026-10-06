@@ -93,6 +93,18 @@ class CCR_Admin_Settings {
 					array( 'pdf_footer', __( 'Pie del PDF', 'calculadora-cielorraso-pvc' ), 'textarea' ),
 				),
 			),
+			'ccr-sales'  => array(
+				__( 'Carrito y WhatsApp', 'calculadora-cielorraso-pvc' ),
+				array(
+					array( 'cart_enabled', __( 'Botón "Agregar al carrito"', 'calculadora-cielorraso-pvc' ), 'bool', __( 'Requiere WooCommerce. Cada material se vincula con el producto de la tienda que tenga el mismo SKU (o el SKU de la variante). Las cantidades se recalculan en el servidor y se cobran con el precio de WooCommerce.', 'calculadora-cielorraso-pvc' ) ),
+					array( 'cart_button_text', __( 'Texto del botón del carrito', 'calculadora-cielorraso-pvc' ), 'text' ),
+					array( 'cart_redirect', __( 'Después de agregar', 'calculadora-cielorraso-pvc' ), array( 'cart' => __( 'Ir al carrito', 'calculadora-cielorraso-pvc' ), 'checkout' => __( 'Ir a finalizar compra', 'calculadora-cielorraso-pvc' ), 'stay' => __( 'Quedarse en la página', 'calculadora-cielorraso-pvc' ) ) ),
+					array( 'whatsapp_enabled', __( 'Botón "Enviar por WhatsApp"', 'calculadora-cielorraso-pvc' ), 'bool' ),
+					array( 'whatsapp_number', __( 'Número de WhatsApp de la empresa', 'calculadora-cielorraso-pvc' ), 'text', __( 'Con código de país y sin espacios ni "+". Ej.: 59899123456.', 'calculadora-cielorraso-pvc' ) ),
+					array( 'whatsapp_button_text', __( 'Texto del botón de WhatsApp', 'calculadora-cielorraso-pvc' ), 'text' ),
+					array( 'whatsapp_intro', __( 'Mensaje inicial', 'calculadora-cielorraso-pvc' ), 'textarea', __( 'Va al principio del mensaje; debajo se agregan las medidas, los materiales y el total.', 'calculadora-cielorraso-pvc' ) ),
+				),
+			),
 			'ccr-design' => array(
 				__( 'Diseño', 'calculadora-cielorraso-pvc' ),
 				array(

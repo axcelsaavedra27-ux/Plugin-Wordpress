@@ -17,6 +17,13 @@ class CCR_Ajax {
 	public function __construct() {
 		add_action( 'wp_ajax_ccr_calculate', array( $this, 'calculate' ) );
 		add_action( 'wp_ajax_nopriv_ccr_calculate', array( $this, 'calculate' ) );
+		add_action( 'wp_ajax_ccr_add_to_cart', array( $this, 'add_to_cart' ) );
+		add_action( 'wp_ajax_nopriv_ccr_add_to_cart', array( $this, 'add_to_cart' ) );
+	}
+
+	/** El botón del carrito solo funciona con WooCommerce activo y la opción habilitada. */
+	public static function cart_available() {
+		return CCR_Settings::get( 'cart_enabled' ) && function_exists( 'WC' ) && function_exists( 'wc_get_product_id_by_sku' );
 	}
 
 	public function calculate() {
@@ -64,7 +71,7 @@ class CCR_Ajax {
 		}
 
 		$input = $result['_input'];
-		unset( $result['_input'] );
+		unset( $result['_input'], $result['_cart'] );
 
 		if ( $lead_id ) {
 			CCR_Repository::get( 'calculations' )->insert(
@@ -81,6 +88,120 @@ class CCR_Ajax {
 
 		$result['lead_token'] = $token;
 		wp_send_json_success( $result );
+	}
+
+	/**
+	 * Agrega al carrito de WooCommerce los materiales del presupuesto.
+	 *
+	 * No confía en las cantidades del navegador: recibe los mismos datos del
+	 * formulario, vuelve a calcular en el servidor y vincula cada material con
+	 * el producto de la tienda por SKU. El precio cobrado es el de WooCommerce.
+	 */
+	public function add_to_cart() {
+		if ( ! check_ajax_referer( self::NONCE, 'nonce', false ) ) {
+			wp_send_json_error( array( 'message' => __( 'La sesión expiró. Recargá la página e intentá nuevamente.', 'calculadora-cielorraso-pvc' ) ), 403 );
+		}
+		if ( ! self::cart_available() ) {
+			wp_send_json_error( array( 'message' => __( 'La compra en línea no está disponible.', 'calculadora-cielorraso-pvc' ) ), 400 );
+		}
+		if ( ! $this->within_rate_limit() ) {
+			wp_send_json_error( array( 'message' => __( 'Demasiadas solicitudes. Esperá unos minutos.', 'calculadora-cielorraso-pvc' ) ), 429 );
+		}
+
+		$data = isset( $_POST['data'] ) ? json_decode( wp_unslash( $_POST['data'] ), true ) : null; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON, se sanitiza campo por campo en CCR_Calculator::normalize().
+		if ( ! is_array( $data ) ) {
+			wp_send_json_error( array( 'message' => __( 'Datos inválidos.', 'calculadora-cielorraso-pvc' ) ), 400 );
+		}
+
+		// Con leads activados, solo quien ya dejó sus datos puede usar el carrito.
+		if ( CCR_Settings::get( 'leads_enabled' ) ) {
+			$token = isset( $data['lead_token'] ) ? (string) $data['lead_token'] : '';
+			if ( ! preg_match( '/^[a-f0-9]{32}$/', $token ) || ! CCR_Repository::get( 'leads' )->find_by( 'token', $token ) ) {
+				wp_send_json_error( array( 'message' => __( 'Volvé a calcular para agregar los materiales al carrito.', 'calculadora-cielorraso-pvc' ) ), 422 );
+			}
+		}
+
+		$calculator = new CCR_Calculator();
+		$result     = $calculator->calculate( $data );
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error( array( 'message' => $result->get_error_message() ), 422 );
+		}
+
+		if ( null === WC()->cart && function_exists( 'wc_load_cart' ) ) {
+			wc_load_cart();
+		}
+		if ( ! WC()->cart ) {
+			wp_send_json_error( array( 'message' => __( 'No se pudo abrir el carrito.', 'calculadora-cielorraso-pvc' ) ), 500 );
+		}
+
+		$added   = 0;
+		$missing = array();
+		foreach ( $result['_cart'] as $item ) {
+			$product_id = '' !== $item['sku'] ? wc_get_product_id_by_sku( $item['sku'] ) : 0;
+			$product_id = (int) apply_filters( 'ccr_cart_product_id', $product_id, $item );
+			$product    = $product_id ? wc_get_product( $product_id ) : null;
+			if ( ! $product || ! $product->is_purchasable() ) {
+				$missing[] = $item['name'];
+				continue;
+			}
+
+			// La cantidad del presupuesto se expresa en unidades de venta (ej. cajas de 100 tornillos).
+			$qty = (int) ceil( $item['qty'] / ( $item['price_qty'] > 0 ? $item['price_qty'] : 1 ) - 1e-9 );
+			$qty = (int) apply_filters( 'ccr_cart_quantity', max( 1, $qty ), $item, $product );
+
+			if ( $product->is_type( 'variation' ) ) {
+				$key = WC()->cart->add_to_cart( $product->get_parent_id(), $qty, $product->get_id(), $product->get_variation_attributes() );
+			} else {
+				$key = WC()->cart->add_to_cart( $product->get_id(), $qty );
+			}
+			if ( $key ) {
+				$added++;
+			} else {
+				$missing[] = $item['name'];
+			}
+		}
+
+		// Los errores de stock de WooCommerce no se muestran en otra página: ya se informan acá.
+		if ( function_exists( 'wc_clear_notices' ) ) {
+			wc_clear_notices();
+		}
+
+		if ( ! $added ) {
+			wp_send_json_error( array( 'message' => __( 'Ninguno de los materiales está disponible en la tienda en este momento. Consultanos por WhatsApp o teléfono.', 'calculadora-cielorraso-pvc' ) ), 422 );
+		}
+
+		WC()->cart->calculate_totals();
+		if ( WC()->session && method_exists( WC()->session, 'set_customer_session_cookie' ) ) {
+			WC()->session->set_customer_session_cookie( true );
+		}
+
+		$redirect = CCR_Settings::get( 'cart_redirect' );
+		$url      = 'checkout' === $redirect ? wc_get_checkout_url() : wc_get_cart_url();
+
+		$message = sprintf(
+			/* translators: %d: number of products added */
+			_n( 'Se agregó %d material al carrito.', 'Se agregaron %d materiales al carrito.', $added, 'calculadora-cielorraso-pvc' ),
+			$added
+		);
+		if ( $missing ) {
+			$message .= ' ' . sprintf(
+				/* translators: %s: list of materials */
+				__( 'No están disponibles en la tienda: %s.', 'calculadora-cielorraso-pvc' ),
+				implode( ', ', $missing )
+			);
+		}
+
+		do_action( 'ccr_added_to_cart', $added, $missing, $result );
+
+		wp_send_json_success(
+			array(
+				'added'    => $added,
+				'missing'  => $missing,
+				'message'  => $message,
+				'url'      => $url,
+				'redirect' => 'stay' !== $redirect && ! $missing,
+			)
+		);
 	}
 
 	/**

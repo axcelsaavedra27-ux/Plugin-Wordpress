@@ -4,7 +4,7 @@ Tags: calculadora, cielorraso, pvc, presupuesto, materiales
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.2.0
+Stable tag: 1.3.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -28,6 +28,11 @@ Calculadora de materiales para cielorrasos de PVC, 100 % configurable desde el p
 3. Insertar [calculadora_cielorraso] o el bloque "Calculadora de cielorraso PVC".
 
 == Changelog ==
+
+= 1.3.0 =
+* Botón "Agregar materiales al carrito" (WooCommerce): vincula cada material con el producto de la tienda por SKU (también por variante) y recalcula las cantidades en el servidor.
+* Botón "Enviar presupuesto por WhatsApp" al número de la empresa, con medidas, materiales y total.
+* Nueva sección de ajustes "Carrito y WhatsApp".
 
 = 1.2.0 =
 * PDF: logos de Konex arriba de cada página (imágenes de assets/img/logos/).

@@ -427,6 +427,22 @@
 .ccr-calc .ccr-note { margin: 0; font-size: 12px; line-height: 1.5; color: var(--ccr-soft); }
 
 .ccr-calc .ccr-mat-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* ---------- Compra: carrito y WhatsApp ---------- */
+.ccr-calc .ccr-buy { display: flex; flex-direction: column; gap: 10px; }
+.ccr-calc .ccr-buy-buttons { display: flex; flex-wrap: wrap; gap: 10px; }
+.ccr-calc .ccr-buy-buttons .ccr-btn { flex: 1 1 220px; min-height: 50px; white-space: normal; text-align: center; }
+.ccr-calc .ccr-btn-cart,
+.ccr-calc .ccr-btn-cart:visited { background: var(--ccr-primary); color: #fff; }
+.ccr-calc .ccr-btn-cart:hover,
+.ccr-calc .ccr-btn-cart:focus { background: color-mix(in srgb, var(--ccr-primary) 85%, #000); color: #fff; }
+.ccr-calc .ccr-btn-whatsapp,
+.ccr-calc .ccr-btn-whatsapp:visited { background: #128C7E; color: #fff; }
+.ccr-calc .ccr-btn-whatsapp:hover,
+.ccr-calc .ccr-btn-whatsapp:focus { background: #0E7266; color: #fff; }
+.ccr-calc .ccr-buy-msg { margin: 0; padding: 10px 14px; border-radius: 12px; font-size: 13.5px; line-height: 1.5; background: color-mix(in srgb, var(--ccr-primary) 8%, #fff); color: var(--ccr-ink); }
+.ccr-calc .ccr-buy-msg.is-error { background: color-mix(in srgb, var(--ccr-accent) 10%, #fff); }
+.ccr-calc .ccr-buy-msg a { color: var(--ccr-primary); font-weight: 700; }
 .ccr-calc .ccr-mat-actions .ccr-btn { min-height: 44px; padding: 0 20px; font-size: 14px; }
 .ccr-calc .ccr-print-only { display: none; }
 

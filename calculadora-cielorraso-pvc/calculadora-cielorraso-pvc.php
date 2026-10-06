@@ -3,7 +3,7 @@
  * Plugin Name:       Calculadora de Cielorraso PVC
  * Plugin URI:        https://example.com/calculadora-cielorraso-pvc
  * Description:       Calculadora de materiales para cielorrasos PVC totalmente configurable: materiales, fórmulas, desperdicios, redondeos, cotización, leads y exportación (PDF / Excel / impresión). Shortcode [calculadora_cielorraso] y bloque Gutenberg.
- * Version:           1.2.0
+ * Version:           1.3.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Konex
@@ -17,7 +17,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'CCR_VERSION', '1.2.0' );
+define( 'CCR_VERSION', '1.3.0' );
 define( 'CCR_DB_VERSION', '1.1.0' );
 define( 'CCR_FILE', __FILE__ );
 define( 'CCR_PATH', plugin_dir_path( __FILE__ ) );

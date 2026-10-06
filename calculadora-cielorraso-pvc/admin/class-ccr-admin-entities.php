@@ -115,7 +115,7 @@ class CCR_Admin_Entities {
 				'_s1'               => array( 'type' => 'section', 'label' => __( 'Datos del material', 'calculadora-cielorraso-pvc' ) ),
 				'name'              => array( 'label' => __( 'Nombre', 'calculadora-cielorraso-pvc' ), 'type' => 'text', 'required' => true ),
 				'code'              => array( 'label' => __( 'Código interno', 'calculadora-cielorraso-pvc' ), 'type' => 'slug', 'required' => true, 'help' => __( 'Letras minúsculas, números y guion bajo. Se usa en fórmulas: q_CODIGO, sel_CODIGO…', 'calculadora-cielorraso-pvc' ) ),
-				'sku'               => array( 'label' => __( 'SKU / código comercial', 'calculadora-cielorraso-pvc' ), 'type' => 'text' ),
+				'sku'               => array( 'label' => __( 'SKU / código comercial', 'calculadora-cielorraso-pvc' ), 'type' => 'text', 'help' => __( 'Para el botón "Agregar al carrito": debe coincidir con el SKU del producto en WooCommerce.', 'calculadora-cielorraso-pvc' ) ),
 				'category_id'       => array( 'label' => __( 'Categoría', 'calculadora-cielorraso-pvc' ), 'type' => 'select', 'options' => array( __CLASS__, 'category_options' ), 'int' => true ),
 				'description'       => array( 'label' => __( 'Descripción', 'calculadora-cielorraso-pvc' ), 'type' => 'textarea' ),
 				'unit'              => array( 'label' => __( 'Unidad', 'calculadora-cielorraso-pvc' ), 'type' => 'text', 'default' => 'unidad', 'help' => __( 'Ej.: lámina, pieza, rollo, unidad, m, m².', 'calculadora-cielorraso-pvc' ) ),

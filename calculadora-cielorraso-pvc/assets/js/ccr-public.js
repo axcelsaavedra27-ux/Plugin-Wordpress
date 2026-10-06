@@ -404,6 +404,26 @@
 			b.addEventListener('click', fn);
 			actions.appendChild(b);
 		};
+		// Compra: agregar al carrito de WooCommerce y enviar por WhatsApp.
+		var buy = null;
+		var cartOn = G.cart && G.cart.enabled;
+		var waOn = G.whatsapp && G.whatsapp.enabled;
+		if (cartOn || waOn) {
+			var buyMsg = el('p', { class: 'ccr-buy-msg', role: 'status', 'aria-live': 'polite', hidden: 'hidden' });
+			var buyBtns = el('div', { class: 'ccr-buy-buttons' });
+			if (cartOn) {
+				var cartBtn = el('button', { type: 'button', class: 'ccr-btn ccr-btn-cart' }, G.cart.label);
+				cartBtn.addEventListener('click', function () { self.addToCart(cartBtn, buyMsg); });
+				buyBtns.appendChild(cartBtn);
+			}
+			if (waOn) {
+				var waBtn = el('button', { type: 'button', class: 'ccr-btn ccr-btn-whatsapp' }, G.whatsapp.label);
+				waBtn.addEventListener('click', function () { self.sendWhatsApp(r); });
+				buyBtns.appendChild(waBtn);
+			}
+			buy = el('div', { class: 'ccr-buy ccr-no-print' }, [buyBtns, buyMsg]);
+		}
+
 		var X = window.CCRExport;
 		var meta = { company: G.company, i18n: T };
 		if (G.export && G.export.pdf && X) { btn(T.pdf, 'ccr-btn-primary', function () { X.pdf(r, meta); }); }
@@ -419,7 +439,71 @@
 			el('span', null, [G.company && G.company.phone, G.company && G.company.email, G.company && G.company.address].filter(Boolean).join(' · '))
 		]);
 
-		append(box, [printHeader, head, el('div', { class: 'ccr-table-wrap' }, table), totalBox, extra, notes, actions]);
+		append(box, [printHeader, head, el('div', { class: 'ccr-table-wrap' }, table), totalBox, extra, notes, buy, actions]);
+	};
+
+	/**
+	 * Agrega los materiales al carrito. Se envían los mismos datos del formulario:
+	 * el servidor recalcula las cantidades (no se confía en las del navegador).
+	 */
+	Calculator.prototype.addToCart = function (btn, msgBox) {
+		if (!this.lastPayload) { return; }
+		var original = btn.textContent;
+		btn.disabled = true;
+		btn.textContent = T.addingCart || '...';
+		msgBox.hidden = true;
+		msgBox.classList.remove('is-error');
+
+		var payload = this.lastPayload.data;
+		payload.lead_token = storageGet(TOKEN_KEY);
+		var body = new FormData();
+		body.append('action', 'ccr_add_to_cart');
+		body.append('nonce', G.nonce);
+		body.append('data', JSON.stringify(payload));
+
+		var showMsg = function (text, url, isError) {
+			msgBox.textContent = text;
+			if (url) {
+				msgBox.appendChild(document.createTextNode(' '));
+				msgBox.appendChild(el('a', { href: url }, T.viewCart || url));
+			}
+			msgBox.classList.toggle('is-error', !!isError);
+			msgBox.hidden = false;
+		};
+
+		fetch(G.ajaxUrl, { method: 'POST', body: body, credentials: 'same-origin' })
+			.then(function (r) { return r.json().catch(function () { return { success: false, data: {} }; }); })
+			.then(function (res) {
+				var d = (res && res.data) || {};
+				if (!res || !res.success) { showMsg(d.message || T.error, null, true); return; }
+				if (d.redirect && d.url) { window.location.href = d.url; return; }
+				showMsg(d.message, d.url, d.missing && d.missing.length > 0);
+			})
+			.catch(function () { showMsg(T.error, null, true); })
+			.then(function () {
+				btn.disabled = false;
+				btn.textContent = original;
+			});
+	};
+
+	/** Abre WhatsApp con el presupuesto como texto, dirigido al número de la empresa. */
+	Calculator.prototype.sendWhatsApp = function (r) {
+		var s = r.summary;
+		var out = [];
+		if (G.whatsapp.intro) { out.push(G.whatsapp.intro, ''); }
+		out.push('*' + T.room + ':* ' + fmtNum(s.largo, 2) + ' × ' + fmtNum(s.ancho, 2) + ' m (' + fmtNum(s.area) + ' m²)');
+		out.push('*' + T.installType + ':* ' + s.install_type);
+		out.push('*' + T.direction + ':* ' + s.direction_label);
+		out.push('', '*' + T.materials + ':*');
+		r.lines.forEach(function (l) {
+			var line = '• ' + l.qty_display + ' ' + l.unit + ' — ' + l.name;
+			if (r.show_prices && l.subtotal_display) { line += ' — ' + l.subtotal_display; }
+			out.push(line);
+		});
+		if (r.show_prices && r.total_display) { out.push('', '*' + (r.total_label || T.total) + ':* ' + r.total_display); }
+		if (s.observations) { out.push('', '*' + T.observations + ':* ' + s.observations); }
+		var url = 'https://wa.me/' + encodeURIComponent(G.whatsapp.number) + '?text=' + encodeURIComponent(out.join('\n'));
+		window.open(url, '_blank', 'noopener');
 	};
 
 	function init() {

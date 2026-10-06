@@ -260,6 +260,7 @@ class CCR_Admin_Crud {
 						'length' => max( 0, $num( 'length' ) ),
 						'width'  => max( 0, $num( 'width' ) ),
 						'price'  => max( 0, $num( 'price' ) ),
+						'sku'    => isset( $row['sku'] ) ? sanitize_text_field( (string) $row['sku'] ) : '',
 					);
 				}
 				return $rows ? wp_json_encode( $rows ) : '';
@@ -572,6 +573,7 @@ class CCR_Admin_Crud {
 				. '<td><input type="number" step="0.0001" name="' . esc_attr( $n . '[length]' ) . '" value="' . esc_attr( $r['length'] ) . '"></td>'
 				. '<td><input type="number" step="0.0001" name="' . esc_attr( $n . '[width]' ) . '" value="' . esc_attr( $r['width'] ? $r['width'] : '' ) . '" placeholder="—"></td>'
 				. '<td><input type="number" step="0.0001" name="' . esc_attr( $n . '[price]' ) . '" value="' . esc_attr( $r['price'] ) . '"></td>'
+				. '<td><input type="text" name="' . esc_attr( $n . '[sku]' ) . '" value="' . esc_attr( $r['sku'] ) . '" placeholder="' . esc_attr__( 'SKU del material', 'calculadora-cielorraso-pvc' ) . '"></td>'
 				. '<td><button type="button" class="button-link ccr-danger ccr-remove-row" aria-label="' . esc_attr__( 'Quitar', 'calculadora-cielorraso-pvc' ) . '">&times;</button></td>'
 				. '</tr>';
 		};
@@ -580,6 +582,7 @@ class CCR_Admin_Crud {
 			'length' => '',
 			'width'  => '',
 			'price'  => '',
+			'sku'    => '',
 		);
 		?>
 		<div class="ccr-variants" data-name="<?php echo esc_attr( $input ); ?>">
@@ -589,6 +592,7 @@ class CCR_Admin_Crud {
 					<th><?php esc_html_e( 'Largo (m)', 'calculadora-cielorraso-pvc' ); ?></th>
 					<th><?php esc_html_e( 'Ancho (m, opcional)', 'calculadora-cielorraso-pvc' ); ?></th>
 					<th><?php esc_html_e( 'Precio', 'calculadora-cielorraso-pvc' ); ?></th>
+					<th><?php esc_html_e( 'SKU tienda (opcional)', 'calculadora-cielorraso-pvc' ); ?></th>
 					<th></th>
 				</tr></thead>
 				<tbody>
